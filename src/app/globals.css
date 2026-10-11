@@ -1,0 +1,790 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --font-display: var(--font-press-start), monospace;
+  --font-pixel: var(--font-silkscreen), monospace;
+  --font-crt: var(--font-vt323), monospace;
+}
+
+:root {
+  --radius: 0px;
+  --background: #cfe4ff;
+  --foreground: #1b1b1f;
+  --card: #fffdf2;
+  --card-foreground: #1b1b1f;
+  --popover: #fffdf2;
+  --popover-foreground: #1b1b1f;
+  --primary: #1727b8;
+  --primary-foreground: #ffffff;
+  --secondary: #f7f1b5;
+  --secondary-foreground: #1b1b1f;
+  --muted: #ebe8d6;
+  --muted-foreground: #5c5a4e;
+  --accent: #9ef5c0;
+  --accent-foreground: #1b1b1f;
+  --destructive: #ee4b3b;
+  --border: #1b1b1f;
+  --input: #1b1b1f;
+  --ring: #1727b8;
+}
+
+/* The body stays transparent so the fixed backdrop canvas shows through;
+   the html colour is only what you see before it has painted. */
+body {
+  color: var(--foreground);
+}
+
+/* ============================================================
+   QUOTE CASKET
+   Palette and parts are lifted from the Superboard Figma file:
+   cream claw cabinet, pale-blue rail, royal-blue PICK bar,
+   teal television, mint buttons on black, red mono headings.
+   ============================================================ */
+
+:root {
+  --ink: #1b1b1f;
+  --cream: #f7f1b5;
+  --cream-hi: #fffbd6;
+  --cream-lo: #e2d98c;
+  --teal: #56b3b9;
+  --teal-hi: #86d2d6;
+  --teal-lo: #358a91;
+  --mint: #9ef5c0;
+  --red: #ee4b3b;
+  --s: 4px;
+  /* A rectangle with two-step pixel corners. */
+  --stepped: polygon(
+    0 calc(var(--s) * 2), var(--s) calc(var(--s) * 2), var(--s) var(--s), calc(var(--s) * 2) var(--s), calc(var(--s) * 2) 0,
+    calc(100% - var(--s) * 2) 0, calc(100% - var(--s) * 2) var(--s), calc(100% - var(--s)) var(--s), calc(100% - var(--s)) calc(var(--s) * 2), 100% calc(var(--s) * 2),
+    100% calc(100% - var(--s) * 2), calc(100% - var(--s)) calc(100% - var(--s) * 2), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - var(--s) * 2) calc(100% - var(--s)), calc(100% - var(--s) * 2) 100%,
+    calc(var(--s) * 2) 100%, calc(var(--s) * 2) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - var(--s) * 2), 0 calc(100% - var(--s) * 2)
+  );
+}
+
+html {
+  background: #cfe4ff;
+}
+
+body {
+  font-family: var(--font-pixel);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+.pixelated {
+  image-rendering: pixelated;
+}
+
+/* A notched one-step pixel outline, for small parts. */
+.px,
+.hud-cell,
+.count-pill,
+.lcd,
+.prize-door,
+.hatch,
+.stat,
+.set-band,
+.rarity-tile,
+.podium-card,
+.sheet-card,
+.jam-bar,
+.slot,
+.counter,
+.reveal-tag,
+.lower-third {
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+
+/* Big parts get an ink silhouette with stepped corners and a filled inset. */
+.cabinet,
+.deck-top,
+.tv,
+.vcr,
+.crt-bezel {
+  position: relative;
+  background: var(--ink);
+  clip-path: var(--stepped);
+  isolation: isolate;
+}
+.cabinet::before,
+.deck-top::before,
+.tv::before,
+.vcr::before,
+.crt-bezel::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  clip-path: var(--stepped);
+}
+
+/* ── Scene ─────────────────────────────────────────────────── */
+/* The scenery itself is painted by <Backdrop/>, a fixed canvas behind everything. */
+.backdrop {
+  max-width: none;
+}
+.chip {
+  background: #fffdf2;
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+.drift {
+  animation: drift 26s steps(52) infinite alternate;
+}
+@keyframes drift {
+  to {
+    transform: translateX(120px);
+  }
+}
+
+/* ── HUD ───────────────────────────────────────────────────── */
+.count-pill {
+  background: #fffdf2;
+  cursor: pointer;
+}
+.count-pill:hover {
+  background: #fff;
+}
+
+/* ── Cabinet ───────────────────────────────────────────────── */
+.casket {
+  --cab: var(--cream);
+  --cab-hi: var(--cream-hi);
+  --cab-lo: var(--cream-lo);
+  --cab-ink: #5b5330;
+  --deck: #fdfdfd;
+  --deck-lo: #c9c9cf;
+  --base: #fdf6b0;
+  --base-lo: #e2d98c;
+  --base-ink: #3d3a22;
+  --key-lo: #2a4be0;
+  --pick-lo: #0d1a82;
+}
+.cabinet::before {
+  background: var(--cab, var(--cream));
+  box-shadow:
+    inset 8px 8px 0 0 var(--cab-hi, var(--cream-hi)),
+    inset -8px -8px 0 0 var(--cab-lo, var(--cream-lo));
+}
+.marquee {
+  font-family: var(--font-display);
+  letter-spacing: 0.12em;
+  margin-right: -0.12em;
+  text-shadow:
+    2px 0 0 var(--ink),
+    -2px 0 0 var(--ink),
+    0 2px 0 var(--ink),
+    0 -2px 0 var(--ink),
+    2px 2px 0 var(--ink),
+    -2px -2px 0 var(--ink),
+    2px -2px 0 var(--ink),
+    -2px 2px 0 var(--ink),
+    4px 4px 0 var(--ink);
+}
+.glass {
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+.svg-label {
+  font-family: var(--font-display);
+  font-size: 5.5px;
+  letter-spacing: 0.3px;
+}
+.prize-door {
+  background: #2a2c35;
+  background-image: linear-gradient(#3a3d49 0 4px, transparent 4px);
+}
+.prize-pop {
+  animation: prize-pop 0.5s steps(5) both;
+}
+@keyframes prize-pop {
+  from {
+    transform: translateY(-34px);
+  }
+  60% {
+    transform: translateY(4px);
+  }
+}
+.lcd {
+  background: #cfe9d6;
+  color: #17402a;
+}
+.hatch {
+  background: var(--cab-lo);
+  cursor: pointer;
+}
+.hatch:hover {
+  filter: brightness(0.93);
+}
+.hatch:focus-visible {
+  outline: 4px solid #4f7cff;
+  outline-offset: 4px;
+}
+.screw {
+  width: 10px;
+  height: 10px;
+  background:
+    linear-gradient(var(--ink), var(--ink)) center / 6px 2px no-repeat,
+    #9a956b;
+  box-shadow:
+    0 -2px 0 0 var(--ink),
+    0 2px 0 0 var(--ink),
+    -2px 0 0 0 var(--ink),
+    2px 0 0 0 var(--ink);
+}
+.hatch:hover .screw {
+  transform: translateX(-50%) rotate(90deg);
+}
+
+/* ── Control deck ──────────────────────────────────────────── */
+/* The tray tapers toward the top in three pixel steps, like the Figma deck. */
+.deck-top,
+.deck-top::before {
+  clip-path: polygon(
+    16px 0, calc(100% - 16px) 0,
+    calc(100% - 16px) 4px, calc(100% - 12px) 4px,
+    calc(100% - 12px) 34%, calc(100% - 8px) 34%,
+    calc(100% - 8px) 67%, calc(100% - 4px) 67%,
+    calc(100% - 4px) calc(100% - 4px), 100% calc(100% - 4px),
+    100% 100%, 0 100%,
+    0 calc(100% - 4px), 4px calc(100% - 4px),
+    4px 67%, 8px 67%,
+    8px 34%, 12px 34%,
+    12px 4px, 16px 4px
+  );
+}
+.deck-top::before {
+  background: var(--deck);
+  box-shadow: inset 0 -10px 0 0 var(--deck-lo);
+}
+.key {
+  box-shadow: 0 6px 0 0 var(--key-lo);
+}
+.pick {
+  box-shadow: 0 6px 0 0 var(--pick-lo);
+}
+.key:active,
+.pick:active {
+  box-shadow: 0 2px 0 0 var(--pick-lo);
+}
+.key:disabled,
+.pick:disabled {
+  opacity: 0.8;
+}
+.deck-base {
+  position: relative;
+  margin-top: -4px;
+  background: var(--base);
+  border: 4px solid var(--ink);
+  border-top-width: 4px;
+  box-shadow: inset 0 -8px 0 0 var(--base-lo);
+}
+.touch-tag {
+  background: var(--red);
+  animation: nudge 0.9s steps(2) infinite;
+}
+.touch-tag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 6px;
+  height: 4px;
+  margin-left: -3px;
+  background: var(--red);
+}
+@keyframes nudge {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* ── Mascot ────────────────────────────────────────────────── */
+.bob {
+  animation: bob 1.6s steps(2) infinite;
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.paw {
+  width: 22px;
+  height: 14px;
+  background: #fff;
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+  z-index: 2;
+}
+.zzz {
+  animation: zzz 2s steps(4) infinite;
+}
+@keyframes zzz {
+  from {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(10px, -16px);
+    opacity: 0;
+  }
+}
+
+/* ── Television ────────────────────────────────────────────── */
+.tv::before {
+  background: var(--teal);
+  box-shadow:
+    inset 8px 8px 0 0 var(--teal-hi),
+    inset -8px -8px 0 0 var(--teal-lo);
+}
+.crt-bezel::before {
+  background: #23262d;
+  box-shadow:
+    inset 4px 4px 0 0 #3a3f4a,
+    inset -4px -4px 0 0 #121418;
+}
+.crt {
+  --s: 6px;
+  background: #10151c;
+  clip-path: var(--stepped);
+  container-type: inline-size;
+}
+.q-short {
+  font-size: 10.8cqw;
+}
+.q-mid {
+  font-size: 8.4cqw;
+}
+.q-long {
+  font-size: 6.8cqw;
+}
+.scanlines {
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.2) 2px 4px);
+  mix-blend-mode: multiply;
+}
+.crt-glare {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0 18%, transparent 18% 100%),
+    radial-gradient(ellipse at center, transparent 0 62%, rgba(0, 0, 0, 0.14) 62% 74%, rgba(0, 0, 0, 0.28) 74% 100%);
+}
+.phosphor {
+  text-shadow: 0 0 6px rgba(140, 220, 255, 0.5);
+}
+.caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.75em;
+  margin-left: 2px;
+  background: var(--mint);
+  animation: blink 0.5s steps(1) infinite;
+}
+.lower-third {
+  transition: opacity 0.2s steps(3);
+}
+.tv-panel {
+  background: #2f7f86;
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+.dial {
+  --s: 6px;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  background: var(--ink);
+  clip-path: var(--stepped);
+  isolation: isolate;
+  cursor: pointer;
+}
+.dial::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  --s: 5px;
+  clip-path: var(--stepped);
+  background: #e8ecef;
+  box-shadow:
+    inset -4px -4px 0 0 #aeb6bd,
+    inset 4px 4px 0 0 #fff;
+}
+.dial-sm {
+  width: 40px;
+  height: 40px;
+}
+.dial:hover::before {
+  background: #fff;
+}
+.dial:focus-visible,
+.tape:focus-visible,
+.tv-link:focus-visible,
+.count-pill:focus-visible {
+  outline: 4px solid #1727b8;
+  outline-offset: 3px;
+}
+.dial-mark {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.2s steps(4);
+}
+.dial-mark::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 4px;
+  height: 12px;
+  margin-left: -2px;
+  background: var(--ink);
+}
+.grille {
+  background: radial-gradient(circle, var(--ink) 0 2px, transparent 2.5px) 0 0 / 8px 8px;
+}
+.lamp {
+  width: 10px;
+  height: 10px;
+  background: #5a2020;
+  box-shadow:
+    0 -2px 0 0 var(--ink),
+    0 2px 0 0 var(--ink),
+    -2px 0 0 0 var(--ink),
+    2px 0 0 0 var(--ink);
+}
+.lamp-on {
+  background: #ff5a4a;
+  box-shadow:
+    0 -2px 0 0 var(--ink),
+    0 2px 0 0 var(--ink),
+    -2px 0 0 0 var(--ink),
+    2px 0 0 0 var(--ink),
+    0 0 10px 2px rgba(255, 90, 74, 0.7);
+}
+.tv-foot {
+  width: 44px;
+  height: 12px;
+  background: var(--teal-lo);
+  border: 4px solid var(--ink);
+  border-top: 0;
+}
+.blink {
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.twinkle {
+  animation: blink 0.7s steps(1) infinite;
+}
+
+/* Channel ident */
+.ident-title {
+  color: #fff;
+  text-shadow:
+    3px 0 0 var(--ink),
+    -3px 0 0 var(--ink),
+    0 3px 0 var(--ink),
+    0 -3px 0 var(--ink),
+    3px 3px 0 var(--ink),
+    -3px -3px 0 var(--ink),
+    3px -3px 0 var(--ink),
+    -3px 3px 0 var(--ink),
+    6px 6px 0 var(--ink);
+}
+.ground {
+  background:
+    linear-gradient(90deg, #2f9e4f 50%, transparent 50%) 0 0 / 12px 6px repeat-x,
+    linear-gradient(#3fbf63 0 6px, #2f9e4f 6px);
+  border-top: 3px solid var(--ink);
+}
+.wipe-in {
+  animation: wipe-in 0.5s steps(8) both;
+}
+@keyframes wipe-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Capsule reveal: the mystery-box sunburst from the Daily Treats page. */
+.sunburst {
+  transform: translate(-50%, -50%);
+  animation: spin 9s steps(72) infinite;
+}
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+/* Banded, not blended: the glow steps down in three flat rings. */
+.burst-glow {
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.95) 0 14%,
+    rgba(255, 255, 255, 0.6) 14% 22%,
+    rgba(255, 255, 255, 0.3) 22% 30%,
+    transparent 30%
+  );
+}
+.sparkle {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  box-shadow:
+    0 -8px 0 0 #fff,
+    0 8px 0 0 #fff,
+    -8px 0 0 0 #fff,
+    8px 0 0 0 #fff;
+  animation: blink 0.6s steps(1) infinite;
+}
+.capsule-crack {
+  animation: pop-in 0.35s steps(5) both;
+}
+@keyframes pop-in {
+  from {
+    transform: scale(0.2);
+  }
+}
+.half-top {
+  animation: lid 0.6s steps(6) 0.75s both;
+}
+.half-bottom {
+  animation: base 0.6s steps(6) 0.75s both;
+}
+@keyframes lid {
+  to {
+    transform: translate(-26px, -34px) rotate(-22deg);
+  }
+}
+@keyframes base {
+  to {
+    transform: translateY(8px);
+  }
+}
+.reveal-tag {
+  animation: pop-in 0.3s steps(4) 0.9s both;
+}
+
+/* Game over: the synthwave card from the Daily Treats page. */
+.synth {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(79, 214, 255, 0.55) 22px 24px) bottom / 100% 34% no-repeat,
+    repeating-linear-gradient(0deg, transparent 0 12px, rgba(79, 214, 255, 0.55) 12px 14px) bottom / 100% 34% no-repeat,
+    linear-gradient(#141a4f 0 22%, #2b1f7a 22% 40%, #6a2aa3 40% 55%, #c0389f 55% 66%, #10143c 66%);
+}
+.over-title {
+  color: #7ad7ff;
+  text-shadow:
+    3px 3px 0 #6a2aa3,
+    -2px -2px 0 #fff;
+}
+.tv-link {
+  padding: 2px 4px;
+  border-bottom: 3px solid currentColor;
+  cursor: pointer;
+}
+.tv-link:hover {
+  color: var(--mint);
+}
+
+/* ── VCR and tape shelf ────────────────────────────────────── */
+.vcr::before {
+  background: #3a3d49;
+  box-shadow:
+    inset 0 6px 0 0 #535868,
+    inset 0 -6px 0 0 #23252d;
+}
+.slot {
+  background: #10151c;
+}
+.slot-in {
+  animation: slot-in 0.45s steps(6) both;
+}
+@keyframes slot-in {
+  from {
+    transform: translateY(-160%);
+  }
+}
+.counter {
+  background: #10151c;
+  color: #ffcf3a;
+}
+.tape {
+  cursor: pointer;
+  transition: transform 0.12s steps(3);
+}
+.tape:hover:not(:disabled) {
+  transform: translateY(-6px);
+}
+.tape:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+.tape-on,
+.tape-on:hover:not(:disabled) {
+  transform: translateY(-10px);
+}
+.tape-body {
+  background: #23252d;
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    inset 3px 0 0 0 #4a4e5c;
+}
+.tape-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+.shelf-board {
+  height: 14px;
+  margin: 4px -12px 0;
+  background: linear-gradient(#c98d4f 0 6px, #9a6233 6px);
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+
+/* ── Book, menu, hatch, victory ────────────────────────────── */
+.sheet-card {
+  background: #fff;
+  margin: 4px;
+}
+.stat {
+  background: #f3f0de;
+  margin: 2px;
+}
+.set-band {
+  background: #f3ecd8;
+  margin: 0 4px;
+}
+.shiny {
+  padding: 6px;
+  background: radial-gradient(circle, #fff7c9 0 46%, rgba(255, 247, 201, 0.45) 46% 62%, transparent 62%);
+  cursor: pointer;
+}
+.shiny:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.wiggle {
+  animation: wiggle 0.3s steps(2) 3;
+}
+@keyframes wiggle {
+  50% {
+    transform: rotate(-10deg) translateX(-3px);
+  }
+}
+.victory-rays {
+  background: repeating-conic-gradient(from 0deg at 50% 38%, #eef4ff 0 12deg, #fffdf2 12deg 24deg);
+}
+.podium-card {
+  margin: 0 4px;
+}
+.podium {
+  background: #fff;
+  border: 2px solid var(--ink);
+}
+.mint,
+.mint:hover {
+  background: var(--mint);
+  color: var(--ink);
+}
+.jam-bar {
+  margin: 0 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drift,
+  .bob,
+  .sunburst,
+  .blink,
+  .twinkle,
+  .sparkle,
+  .touch-tag,
+  .zzz,
+  .slot-in,
+  .wipe-in,
+  .prize-pop,
+  .capsule-crack,
+  .half-top,
+  .half-bottom,
+  .reveal-tag,
+  .caret,
+  .wiggle {
+    animation: none;
+  }
+  .lower-third,
+  .dial-mark,
+  .tape {
+    transition: none;
+  }
+}
+
+/* Overlays dim the scene with a checkerboard dither instead of a blur. */
+[data-slot="dialog-overlay"],
+[data-slot="sheet-overlay"] {
+  backdrop-filter: none !important;
+  background-color: rgba(27, 27, 31, 0.3) !important;
+  background-image: repeating-conic-gradient(rgba(27, 27, 31, 0.38) 0 25%, transparent 0 50%);
+  background-size: 4px 4px;
+}
+
+/* Sonner wraps the 8-bit toast in a rounded box; square it off. */
+[data-sonner-toast] .rounded-lg {
+  border-radius: 0;
+  box-shadow: none;
+  background: #fffdf2;
+}

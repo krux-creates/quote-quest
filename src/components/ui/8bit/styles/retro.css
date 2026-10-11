@@ -1,0 +1,23 @@
+/* The font is loaded by next/font in app/layout.tsx and served from this site, so nothing
+   is fetched from Google at run time. */
+/* How thick every pixel frame in the kit is drawn. 8bitcn ships 6px; a project can set its own
+   on any ancestor and buttons, badges, cards, alerts, dialogs and tabs all follow. */
+:root {
+  --bit: 6px;
+}
+
+.retro {
+  font-family:
+    var(--font-press-start),
+    "Press Start 2P",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+}
+
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
