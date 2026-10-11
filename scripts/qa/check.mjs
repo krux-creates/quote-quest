@@ -1,6 +1,7 @@
 // The end-to-end check. It drives a real (headless) Chrome against the running dev server:
 //
-//   1. every screen, at every window size the layout has an arrangement for, is measured;
+//   1. every screen, at every window size the layout has an arrangement for, is measured
+//      (including phone screens as small as they get once the browser's toolbars are showing);
 //   2. a round is played in real time with real key presses and clicks, twice (desktop, phone);
 //   3. the frame rate is sampled in each world.
 //
@@ -28,12 +29,17 @@ const SIZES = [
   [390, 844],
   [360, 740],
   [320, 640],
+  // Phones as their browsers really give them to a page, with the toolbars showing.
+  [430, 740],
+  [390, 664],
+  [375, 553],
   [844, 390],
 ];
 const SCREENS = [
   ["playing", ""],
   ["quote card", "demo=quote"],
   ["quote book", "book=saved"],
+  ["ball album", "book=balls"],
   ["world select", "menu=worlds"],
   ["type select", "menu=types"],
 ];
@@ -105,7 +111,8 @@ try {
   // ── 2. A round, played ────────────────────────────────────────────────
   const players = [
     ["desktop", 1362, 1044],
-    ["phone", 390, 844],
+    // A phone with its browser's toolbars showing, which is how it is actually played.
+    ["phone", 390, 664],
   ];
   for (const [name, w, h] of part("play") ? players : []) {
     console.log(`Play: ${name} (${w}x${h})`);
@@ -220,8 +227,30 @@ try {
     expect((await page.run(() => document.querySelector('.qq-bookmark[data-state="active"]')?.textContent.trim())) === "RECENT", `${name}: the RECENT tab opens`);
     expect((await page.run(offKit)).length === 0, `${name}: the book is all 8bitcn`);
     expect((await page.run(hiddenControls)).length === 0, `${name}: every button in the book can be reached`);
+    // The ball album is the tallest page in the book. It must fit too, and the book must close from it.
+    await page.click('.qq-bookmark[data-tab="balls"]');
+    await sleep(500);
+    expect((await page.run(() => document.querySelector('.qq-bookmark[data-state="active"]')?.dataset.tab)) === "balls", `${name}: the BALLS tab opens`);
+    const album = await page.run(() => {
+      const b = document.querySelector(".qq-book").getBoundingClientRect();
+      return { top: Math.round(b.top), bottom: Math.round(b.bottom), view: innerHeight, stickers: document.querySelectorAll(".qq-sticker").length };
+    });
+    expect(album.top >= 0 && album.bottom <= album.view, `${name}: the ball album (${album.top} to ${album.bottom}) fits the ${album.view}px screen`);
+    expect(album.stickers === 8, `${name}: the album shows all eight balls`);
+    expect((await page.run(hiddenControls)).length === 0, `${name}: every button on the album page can be reached`);
+    if (name === "phone") {
+      // On a phone there are two ways out. The one at the top first, then back in and out by the other.
+      await page.touch(".qq-book-x");
+      await page.until(() => !document.querySelector('[role="dialog"]'), { timeout: 4000, what: "the book to close from the top button" });
+      await sleep(300);
+      await page.touch(".qq-topbar .qq-bar-icon");
+      await page.until(() => !!document.querySelector('[role="dialog"] .qq-book'), { what: "the quote book again" });
+      await sleep(500);
+      expect((await page.run(() => document.querySelector('.qq-bookmark[data-state="active"]')?.dataset.tab)) === "saved", `${name}: the heart opens the book at the saved quotes`);
+    }
     await page.press("CLOSE", '[role="dialog"]');
-    await sleep(400);
+    await page.until(() => !document.querySelector('[role="dialog"]'), { timeout: 4000, what: "the book to close" });
+    await sleep(300);
 
     // Come back later: everything is still there.
     await page.goto(url(), { settle: 1000 });

@@ -282,14 +282,22 @@ function Book({ tab, onTab, save, onToggleFav, onCopy, onDownload, copied, downl
         else if (e.key === "ArrowRight") go(1);
       }}
     >
-      {/* On the tabs the arrow keys move between sections, so they must not also turn the page. */}
-      <TabsList className="qq-bookmarks" aria-label="Sections of the book" onKeyDown={(e) => e.stopPropagation()}>
-        {TABS.map((t) => (
-          <TabsTrigger key={t.id} value={t.id} className="qq-bookmark" data-tab={t.id}>
-            {t.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+      <div className="qq-book-top">
+        {/* On the tabs the arrow keys move between sections, so they must not also turn the page. */}
+        <TabsList className="qq-bookmarks" aria-label="Sections of the book" onKeyDown={(e) => e.stopPropagation()}>
+          {TABS.map((t) => (
+            <TabsTrigger key={t.id} value={t.id} className="qq-bookmark" data-tab={t.id}>
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {/* On a phone there is a second way out, at the top, where no browser toolbar can cover it. */}
+        <DialogClose asChild>
+          <Button font="normal" variant="outline" className="qq-paper-btn qq-book-x h-9 w-9 p-0" aria-label="Close the book">
+            <Art sprite={icon("x")} px={2} className="size-auto" />
+          </Button>
+        </DialogClose>
+      </div>
 
       <div className="qq-book-cover">
         <TabsContent value={tab} className="qq-book-pages text-[length:inherit]" aria-live="polite">
@@ -372,35 +380,35 @@ function Book({ tab, onTab, save, onToggleFav, onCopy, onDownload, copied, downl
         </TabsContent>
       </div>
 
-      <div className="qq-book-nav">
-        <Button font="normal" variant="outline" className="qq-paper-btn h-10 w-10 p-0" aria-label="Previous page" disabled={i <= 0} onClick={() => go(-1)}>
+      <div className="qq-book-nav" data-pages={count}>
+        <Button font="normal" variant="outline" className="qq-paper-btn qq-book-turn h-10 w-10 p-0" aria-label="Previous page" disabled={i <= 0} onClick={() => go(-1)}>
           <Art sprite={icon("prev")} px={3} className="size-auto" />
         </Button>
         <span className="qq-book-count retro" aria-label={count ? `Page ${i + 1} of ${count}` : "No pages"}>
           {count ? i + 1 : 0}/{count}
         </span>
-        <Button font="normal" variant="outline" className="qq-paper-btn h-10 w-10 p-0" aria-label="Next page" disabled={i >= count - 1} onClick={() => go(1)}>
+        <Button font="normal" variant="outline" className="qq-paper-btn qq-book-turn h-10 w-10 p-0" aria-label="Next page" disabled={i >= count - 1} onClick={() => go(1)}>
           <Art sprite={icon("next")} px={3} className="size-auto" />
         </Button>
         <span className="qq-show-gap" />
         {quote && (
           <>
-            <Button font="normal" variant="outline" className="qq-paper-btn retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]" onClick={() => onDownload(quote.id)}>
+            <Button font="normal" variant="outline" className="qq-paper-btn qq-book-act retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]" onClick={() => onDownload(quote.id)}>
               <Art sprite={icon("down")} px={2} className="size-auto" />
               {downloaded === quote.id ? "DONE!" : "DOWNLOAD"}
             </Button>
-            <Button font="normal" variant="outline" className="qq-paper-btn retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]" onClick={() => onCopy(quote.id)}>
+            <Button font="normal" variant="outline" className="qq-paper-btn qq-book-act retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]" onClick={() => onCopy(quote.id)}>
               <Art sprite={icon("copyMono")} px={2} className="size-auto" />
               {copied === quote.id ? "COPIED!" : "COPY"}
             </Button>
-            <Button font="normal" variant="outline" className="qq-paper-btn retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]" data-on={fav} aria-pressed={fav} onClick={() => onToggleFav(quote.id)}>
+            <Button font="normal" variant="outline" className="qq-paper-btn qq-book-act retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]" data-on={fav} aria-pressed={fav} onClick={() => onToggleFav(quote.id)}>
               <Art sprite={icon(fav ? "x" : "heartFull")} px={2} className="size-auto" />
               {fav ? "REMOVE" : "SAVE"}
             </Button>
           </>
         )}
         <DialogClose asChild>
-          <Button font="normal" variant="outline" className="qq-paper-btn retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]">
+          <Button font="normal" variant="outline" className="qq-paper-btn qq-book-close retro h-10 gap-2 px-3 text-[length:var(--t8,8px)]">
             <Art sprite={icon("x")} px={2} className="size-auto" />
             CLOSE
           </Button>

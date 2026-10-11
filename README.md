@@ -23,7 +23,7 @@ pnpm test
 pnpm e2e
 ```
 
-`pnpm test` runs 45 unit tests in about three seconds. `pnpm e2e` needs `pnpm dev` running: it drives a headless Chrome through every screen at 14 window sizes, plays two whole rounds with real key presses, clicks and touches, and samples the frame rate (534 checks, about three minutes).
+`pnpm test` runs 45 unit tests in about three seconds. `pnpm e2e` needs `pnpm dev` running: it drives a headless Chrome through every screen at 17 window sizes, plays two whole rounds with real key presses, clicks and touches, and samples the frame rate (767 checks, about four minutes).
 
 To publish a new version (the folder is linked to the Vercel project `quote-quest`; `docs/` is left out of the upload by `.vercelignore`):
 
@@ -183,12 +183,14 @@ Last audited on 11 October 2026. This round was about one question: would it hol
 | Sky props were sliced by the top of the window in wide, short windows (coins in Mushroom Hills, planets, the dungeon's chest) | Yes. The top of each scene hangs from the window's edge. Checked in five worlds at five sizes. |
 | In small windows some text fell under 8px on screen (5.4px for the card's footer on a phone) | Yes. Small print grows as the canvas shrinks. Nothing is under 8px at any of 14 sizes. |
 | The Quote Book did not fit a phone held sideways: every button was off the screen | Yes, down to 667 by 375. Smaller than that it scrolls. |
+| On a real phone the book's BALLS page was 900px tall, taller than the screen, so the tabs and CLOSE were out of reach and there was no way out of the book. Found by Kruthin on an iPhone after the first deploy; the check had only ever opened the SAVED tab on phone sizes, and at sizes without the browser's toolbars | Yes. On a phone the book is never taller than the visible screen (the album is two rows of four, pages scroll inside the cover if they must) and there is a second close button at the top. The check now opens every tab at 390 by 664 and 375 by 553, and closes the book both ways by touch. |
+| With a phone browser's toolbars showing, the stat numbers and the cub's speech dropped under 8px | Yes. |
 | Neon Circuit's banner was 8px taller than the others, and the folded base 12px taller than the layout allowed, so the cabinet overhung its space | Yes. The cabinet's measured height now equals the layout's figure in every arrangement. |
 | Two controls were not 8bitcn components (the book's tabs, the cub), and one hand-made box stood among 8bitcn ones | Yes. |
 | The 6px 8bitcn frames were heavier than the game's 4px pixels | Yes: 4px throughout. |
 | Spots on the Mushroom banner overlapped a lamp and sat under the cub's paw | Yes. |
 | A small heart in Dreamland's sky lost its notch at that size and read as a blob | Replaced with a wrapped sweet. |
-| No automated tests | Yes: 45 unit tests and a 534-check end-to-end run. |
+| No automated tests | Yes: 45 unit tests and a 767-check end-to-end run. |
 | The claw machine's inside is drawn on a 2px grid, the cub and cabinet ornaments on 3px, the cabinet and scenery on 4px | No. It would mean redrawing the machine and re-tuning its physics. |
 | Scenery painted in the middle of the sky (Dreamland's far islands, the low block rows) can still be cut by the window's edge when less than about 55% of the stage's height is showing, such as 1920 by 560 | No. |
 | The stylesheet is one 3,600-line file | No. |
@@ -196,8 +198,8 @@ Last audited on 11 October 2026. This round was about one question: would it hol
 
 **What is checked on every run of `pnpm e2e`**
 
-- At 14 window sizes from 320 by 640 to 1920 by 970, on five screens each (playing, quote card, book, world select, type select): the page does not scroll; the game is inside the window; the cabinet is exactly as tall as the layout says; every control is a framed 8bitcn component; every button on the front layer can be reached; no text is under 8px; no scenery prop is sliced by the top edge.
-- A round played in real time, on a desktop window with keys and mouse and on a phone-sized one with touch: the cub strikes at least three poses in six seconds; holding an arrow moves the claw; a tap on the glass moves it; a grab ends with a quote on stage in under 25 seconds; SAVE stores a favourite; DOWNLOAD produces a named PNG (recorded, not written); Esc returns to the machine; a second grab without steering still wins; the back arrow shows the first quote; changing world shows the stage card with the new world's name and opens on that world; the book opens on the saved quote and its tabs work; after a reload the save is intact.
+- At 17 window sizes from 320 by 640 to 1920 by 970 (three of them phone screens with the browser's toolbars showing), on six screens each (playing, quote card, book, ball album, world select, type select): the page does not scroll; the game is inside the window; the cabinet is exactly as tall as the layout says; every control is a framed 8bitcn component; every button on the front layer can be reached; no text is under 8px; no scenery prop is sliced by the top edge.
+- A round played in real time, on a desktop window with keys and mouse and on a phone-sized one with touch: the cub strikes at least three poses in six seconds; holding an arrow moves the claw; a tap on the glass moves it; a grab ends with a quote on stage in under 25 seconds; SAVE stores a favourite; DOWNLOAD produces a named PNG (recorded, not written); Esc returns to the machine; a second grab without steering still wins; the back arrow shows the first quote; changing world shows the stage card with the new world's name and opens on that world; the book opens on the saved quote and its tabs work; the ball album fits the screen and shows all eight balls; on the phone the book closes from the button at the top and from CLOSE; after a reload the save is intact.
 - 59 or 60 frames a second in every world over two seconds, with no console errors and no request leaving the machine.
 
 Lint, type-check and the production build also pass.
@@ -213,10 +215,10 @@ Lint, type-check and the production build also pass.
 | Cabinet and props | 8 | 9 | Ornaments and the cub are on a 3px grid, the cabinet on 4px. |
 | Cards and download | 8 | 9 | The downloaded picture was not compared with the card again this round. |
 | Picker and transitions | 8 | 9 | The wipes were checked for sequence and timing, and the stage card in all five worlds; I have not watched each wipe frame by frame this round. |
-| Quote Book | 8 | 9 | Below 640px wide in a short window it scrolls instead of fitting. |
+| Quote Book | 8 | 9 | It shipped once with a page that trapped phone users; fixed and now covered, but only checked on one physical phone (by Kruthin). |
 | Mascot | 7 | 8 | It is measurably always moving; whether it is charming is not something a test can say. |
 | Readability | 8 | 9 | Contrast not re-scanned this round. |
-| Responsiveness | 7 | 9 | No physical device. |
+| Responsiveness | 7 | 9 | One physical phone, by Kruthin; everything else is a headless browser at phone sizes. |
 | Pixel-art consistency | 6 | 8 | Three art grids (2, 3 and 4px), smooth prize rays (kept on purpose), and fractional scales in small windows. |
 | Code quality | 7 | 8 | One very large stylesheet, and `game.tsx` still carries a lot. |
 | Sound | unrated | unrated | I cannot hear it. |
