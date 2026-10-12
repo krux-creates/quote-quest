@@ -25,10 +25,10 @@ pnpm e2e
 
 `pnpm test` runs 61 unit tests in about three seconds. `pnpm e2e` needs `pnpm dev` running: it drives a headless Chrome through every screen at 17 window sizes, asks the quotes backend for every category, plays with the backend cut off, plays two whole rounds with real key presses, clicks and touches, and samples the frame rate (811 checks, about four minutes).
 
-To publish a new version (the folder is linked to the Vercel project `quote-quest`; `docs/` is left out of the upload by `.vercelignore`):
+To publish a new version, push to `main`. The GitHub repository is connected to the Vercel project `quote-quest`, so every push to `main` builds and goes live, and a push to any other branch gets a preview address of its own.
 
 ```bash
-pnpm dlx vercel deploy --prod
+git push
 ```
 
 | Route | What it is |
