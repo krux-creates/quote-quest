@@ -124,7 +124,7 @@ export function QuestGame() {
       const menu = params.get("menu");
       if (menu === "worlds" || menu === "types") setDialog(menu);
       if (params.get("ui") === "0") setBare(true);
-      if (dev) Object.assign(window, { __songs: checkSongs, __card: renderCard });
+      if (dev) Object.assign(window, { __songs: checkSongs, __card: renderCard, __pick: (cat: Category, seen: string[] = []) => pickQuote(cat, seen)?.id });
       saveRef.current = s;
       setSave(s);
       setScene(s.world);

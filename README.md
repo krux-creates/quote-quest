@@ -23,7 +23,7 @@ pnpm test
 pnpm e2e
 ```
 
-`pnpm test` runs 62 unit tests in about three seconds. `pnpm e2e` needs `pnpm dev` running: it drives a headless Chrome through every screen at 17 window sizes, asks the quotes backend for every category, plays with the backend cut off, plays two whole rounds with real key presses, clicks and touches, and samples the frame rate (798 checks, about four minutes).
+`pnpm test` runs 61 unit tests in about three seconds. `pnpm e2e` needs `pnpm dev` running: it drives a headless Chrome through every screen at 17 window sizes, asks the quotes backend for every category, plays with the backend cut off, plays two whole rounds with real key presses, clicks and touches, and samples the frame rate (811 checks, about four minutes).
 
 To publish a new version (the folder is linked to the Vercel project `quote-quest`; `docs/` is left out of the upload by `.vercelignore`):
 
@@ -43,7 +43,7 @@ pnpm dlx vercel deploy --prod
 1. **Choose a world.** Five of them, down the left, each card in its own world's colours. The scenery, the cabinet, the music and the quote card all change with it.
 2. **Choose a quote type.** Motivation, Life, Creativity, Focus, Adventure, Wisdom, Friendship or Gaming. It decides which quotes are in the machine.
 3. **Move the claw.** Hold the arrow buttons, hold ← → (or A and D), or tap the glass and the claw slides to that spot. A dotted line shows where it will land, and the ball it would take gives a little hop.
-4. **GRAB ME!** The claw drops, closes, lifts and carries the ball to the prize chute. It is a real pile with real physics, and aiming chooses which ball you get. But no grab comes up empty: press the button with nothing under the claw (it parks over the prize chute) and it slides to the nearest ball first, then drops. On the way down it follows the ball it is after, and if the pile shifts and the prongs close on nothing, it goes straight back for another.
+4. **GRAB ME!** The claw drops, closes, lifts and carries the ball to the prize chute. It is a real pile with real physics, and aiming chooses which ball you get. The claw only ever drops straight down, where you have put it; it never goes looking for a ball by itself. Between rounds it rests over the pile, not over the empty prize chute, so there is a ball under it before you steer, and the dotted line shows which. On the way down it follows the ball it is after, because a pile shifts, and it closes on whatever is really between its prongs. Aim at an empty spot and you miss.
 5. **The reveal.** The ball rises into the middle of the glass, rays whirl around it, it cracks open. Always 2.3 seconds. The rays are the same ones that turn behind the quote card and sit behind it in the downloaded picture: one palette per rarity, eight even fans.
 6. **The quote.** The card steps out in front of the machine, everything else dims, slow prize rays turn behind it, and the quote types itself. Underneath, in one row: previous, next, SAVE, DOWNLOAD and PLAY AGAIN.
 7. **The book.** FAVOURITES opens the Quote Book: an open book, one quote to a spread, with bookmarks for saved quotes, recent quotes and the ball album.
@@ -202,8 +202,8 @@ Last audited on 11 October 2026. This round was about one question: would it hol
 
 | Finding | Fixed? |
 | --- | --- |
-| A grab could come up empty. The claw parks over the prize chute, so pressing GRAB ME! twice in a row without steering dropped it on nothing | Yes. It now goes to the nearest place a drop would catch a ball. A unit test makes 150 unsteered grabs in a row and every one wins. |
-| About one aimed grab in 400 still missed, because the ball it set off for shifted before the prongs closed (found when a test failed one run in six) | Yes. The claw follows its ball down, closes on whatever is really in its grasp, and goes again by itself if that is nothing. 8,160 grabs on freshly poured piles: no misses. |
+| Pressing GRAB ME! without steering came up empty, because the claw parked over the prize chute where there is nothing to take | Yes. My first fix sent the claw off to the nearest ball by itself; Kruthin pointed out that the game was then playing itself. Now it rests over the pile between rounds and only ever drops straight down. A unit test makes 150 unsteered grabs in a row and every one wins; aiming at an empty spot is still a miss. |
+| About one aimed grab in 400 missed even with a ball under the claw, because that ball shifted before the prongs closed (found when a test failed one run in six) | Yes. The claw follows its ball down and closes on whatever is really in its grasp. Every grab aimed over a ball, on 20 freshly poured piles, wins. |
 | Sky props were sliced by the top of the window in wide, short windows (coins in Mushroom Hills, planets, the dungeon's chest) | Yes. The top of each scene hangs from the window's edge. Checked in five worlds at five sizes. |
 | In small windows some text fell under 8px on screen (5.4px for the card's footer on a phone) | Yes. Small print grows as the canvas shrinks. Nothing is under 8px at any of 14 sizes. |
 | The Quote Book did not fit a phone held sideways: every button was off the screen | Yes, down to 667 by 375. Smaller than that it scrolls. |
@@ -214,7 +214,7 @@ Last audited on 11 October 2026. This round was about one question: would it hol
 | The 6px 8bitcn frames were heavier than the game's 4px pixels | Yes: 4px throughout. |
 | Spots on the Mushroom banner overlapped a lamp and sat under the cub's paw | Yes. |
 | A small heart in Dreamland's sky lost its notch at that size and read as a blob | Replaced with a wrapped sweet. |
-| No automated tests | Yes: 62 unit tests and a 798-check end-to-end run. |
+| No automated tests | Yes: 61 unit tests and an 811-check end-to-end run. |
 | The claw machine's inside is drawn on a 2px grid, the cub and cabinet ornaments on 3px, the cabinet and scenery on 4px | No. It would mean redrawing the machine and re-tuning its physics. |
 | Scenery painted in the middle of the sky (Dreamland's far islands, the low block rows) can still be cut by the window's edge when less than about 55% of the stage's height is showing, such as 1920 by 560 | No. |
 | The stylesheet is one 3,600-line file | No. |
@@ -225,7 +225,7 @@ Last audited on 11 October 2026. This round was about one question: would it hol
 **What is checked on every run of `pnpm e2e`**
 
 - At 17 window sizes from 320 by 640 to 1920 by 970 (three of them phone screens with the browser's toolbars showing), on six screens each (playing, quote card, book, ball album, world select, type select): the page does not scroll; the game is inside the window; the cabinet is exactly as tall as the layout says; every control is a framed 8bitcn component; every button on the front layer can be reached; no text is under 8px; no scenery prop is sliced by the top edge.
-- A round played in real time, on a desktop window with keys and mouse and on a phone-sized one with touch: the cub strikes at least three poses in six seconds; holding an arrow moves the claw; a tap on the glass moves it; a grab ends with a quote on stage in under 25 seconds; SAVE stores a favourite; DOWNLOAD produces a named PNG (recorded, not written); Esc returns to the machine; a second grab without steering still wins; the back arrow shows the first quote; changing world shows the stage card with the new world's name and opens on that world; the book opens on the saved quote and its tabs work; the ball album fits the screen and shows all eight balls; on the phone the book closes from the button at the top and from CLOSE; after a reload the save is intact.
+- A round played in real time, on a desktop window with keys and mouse and on a phone-sized one with touch: the cub strikes at least three poses in six seconds; holding an arrow moves the claw; a tap on the glass moves it; the claw starts over a ball; pressed over the empty chute it drops straight down there, misses, stays put and the cub says so; lined up over a ball it drops on that line and a quote is on stage in under 25 seconds; SAVE stores a favourite; DOWNLOAD produces a named PNG (recorded, not written); Esc returns to the machine; the claw is resting over a ball again and a second grab without steering wins; the back arrow shows the first quote; changing world shows the stage card with the new world's name and opens on that world; the book opens on the saved quote and its tabs work; the ball album fits the screen and shows all eight balls; on the phone the book closes from the button at the top and from CLOSE; after a reload the save is intact.
 - 59 or 60 frames a second in every world over two seconds, with no console errors and no request leaving the machine.
 
 Lint, type-check and the production build also pass.
@@ -236,7 +236,7 @@ Lint, type-check and the production build also pass.
 
 | Area | Before | Now | What stands between it and a 10 |
 | --- | --- | --- | --- |
-| Gameplay | 9 | 10 | Nothing I know of. Played by script with real keys, mouse and touch on two layouts; the no-empty-grab rule is unit-tested over 830 grabs a run. |
+| Gameplay | 9 | 9 | It took two tries to get the grab right, and the second came from Kruthin, not from a test. Played by script with real keys, mouse and touch on two layouts; no physical device. |
 | Worlds | 8 | 9 | Mid-sky painted scenery can still be cut in very short, very wide windows. |
 | Cabinet and props | 8 | 9 | Ornaments and the cub are on a 3px grid, the cabinet on 4px. |
 | Cards and download | 8 | 9 | The downloaded picture was not compared with the card again this round. |

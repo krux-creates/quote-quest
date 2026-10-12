@@ -120,6 +120,18 @@ try {
       .then(() => true, () => false);
     expect(stocked, "on arrival the game fetches its category and keeps all 20 quotes");
 
+    // Picks are spread over the whole category, built-in quotes and new ones alike.
+    const spread = await page.run(() => {
+      const hits = {};
+      for (let i = 0; i < 4000; i++) {
+        const id = window.__pick("wisdom");
+        hits[id] = (hits[id] ?? 0) + 1;
+      }
+      const counts = Object.values(hits);
+      return { distinct: counts.length, least: Math.min(...counts), most: Math.max(...counts) };
+    });
+    expect(spread.distinct === 20 && spread.least > 120 && spread.most < 300, `4,000 picks land on all 20 Wisdom quotes, ${spread.least} to ${spread.most} times each`);
+
     // With the backend out of reach and nothing kept from before, the built-in quotes cover.
     await page.send("Network.setBlockedURLs", { urls: ["*/api/quotes*"] });
     await page.run((key) => localStorage.removeItem(key), SHELF);
@@ -212,6 +224,24 @@ try {
     }
     expect(poses.size >= 3, `${name}: the cub struck ${poses.size} different poses in six seconds`);
 
+    // Between rounds the claw rests over the pile, with a ball under it, not over the empty chute.
+    const overBall = () => {
+      const { x } = window.__quest.claw();
+      return window.__quest.bodies().some((b) => !b.held && b.x > 60 && Math.abs(b.x - x) <= 10);
+    };
+    expect(await page.run(overBall), `${name}: the claw starts over a ball`);
+
+    // Aim at nothing and it comes up empty: it drops where it is told to, and does not go looking.
+    await page.run(() => window.__quest.moveTo(34));
+    await sleep(100);
+    await page.key(" ");
+    await sleep(600);
+    const dropping = await page.run(() => window.__quest.claw());
+    expect(dropping.phase !== "idle" && Math.round(dropping.x) === 34, `${name}: pressed over the chute, it goes straight down there (x=${Math.round(dropping.x)}, ${dropping.phase})`);
+    await page.until(() => window.__quest.claw().phase === "idle", { timeout: 8000, what: "the claw to come back up" });
+    const missed = await page.run(() => ({ x: Math.round(window.__quest.claw().x), stage: document.querySelector(".qq").dataset.stage ?? "aim", cub: document.querySelector(".qq-say")?.textContent ?? "" }));
+    expect(missed.x === 34 && missed.stage === "aim" && /missed/i.test(missed.cub), `${name}: that was a miss, the claw stayed put and the cub said so ("${missed.cub}")`);
+
     // Steer: the claw must actually travel. On the desktop with the keyboard, on the phone with a finger held on the button.
     const before = await page.run(() => window.__quest.claw().x);
     if (name === "phone") await page.touch('[aria-label="Move claw right"]', 700);
@@ -227,9 +257,15 @@ try {
       expect(Math.abs(there - after) > 5, `${name}: a tap on the glass moved the claw from ${Math.round(after)} to ${Math.round(there)}`);
     }
 
-    // Grab. Every grab must end with a quote on stage.
+    // Line it up over a ball with taps of the left arrow, as a player would, then grab.
+    for (let taps = 0; taps < 60 && !(await page.run(overBall)); taps++) await page.key("ArrowLeft", 30);
+    expect(await page.run(overBall), `${name}: a few taps of the arrow put the claw over a ball`);
+    const line = await page.run(() => window.__quest.claw().x);
     const t0 = Date.now();
     await page.key(" ");
+    await sleep(500);
+    const down = await page.run(() => window.__quest.claw());
+    expect(down.phase !== "idle" && Math.abs(down.x - line) < 0.01, `${name}: the claw drops on the line it was on (${Math.round(line)} then ${Math.round(down.x)})`);
     await page.until(() => document.querySelector(".qq").dataset.stage === "quote", { timeout: 30000, what: "a quote on stage" });
     const took = (Date.now() - t0) / 1000;
     expect(took > 3 && took < 25, `${name}: the grab took ${took.toFixed(1)}s from the press to the card`);
@@ -254,8 +290,9 @@ try {
     // The button is dead while the claw rides home and the bin refills; wait for it, as a player would.
     await page.until(() => [...document.querySelectorAll(".qq-go-btn")].some((b) => b.textContent.trim() === "GRAB ME!" && !b.disabled && b.getBoundingClientRect().width > 0), { timeout: 15000, what: "the grab button to wake" });
     await sleep(300);
-    // No steering this time: the claw is parked over the prize chute, with nothing under it.
-    // It must go and find a ball by itself, because no grab may come up empty.
+    // No steering this time. The claw has gone back to rest over the pile, so a plain press
+    // drops straight onto a ball.
+    expect(await page.run(overBall), `${name}: after a round the claw is resting over a ball again`);
     await page.press("GRAB ME!", ".qq");
     await page.until(() => document.querySelector(".qq").dataset.stage === "quote", { timeout: 30000, what: "a second quote" });
     await page.until(() => document.querySelector(".qq-show-go")?.textContent.trim() === "PLAY AGAIN", { timeout: 20000, what: "the second quote to finish typing" });

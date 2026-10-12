@@ -5,27 +5,28 @@ import { type BallId, rollBalls } from "./balls";
 // The claw machine itself, with nothing of the screen in it: a pile of balls, a claw, and
 // what happens on each of the sixty steps a second. machine.tsx draws it and feeds it input.
 //
-// The one promise it keeps: no grab comes up empty. Ask for a grab with nothing under the
-// claw and it goes to the nearest place a drop would catch a ball, then drops there. On the
-// way down it follows the ball it is after (a pile shifts), it closes on whatever is between
-// its prongs at that moment, and if that is nothing it goes straight back for another.
+// How it behaves: the claw only ever drops straight down, where the player has put it. It
+// never travels sideways by itself to find a ball. Aim at an empty spot and it comes up empty.
+//
+// What it does to be fair: between rounds it rests over the pile, not over the prize chute
+// (where there is nothing to take), so there is a ball under it before anyone has steered. On
+// the way down it follows the ball it is after, because a pile shifts, and it closes on
+// whatever is between its prongs at that moment.
 
-export type Phase = "idle" | "down" | "close" | "up" | "carry" | "release" | "return";
+export type Phase = "idle" | "down" | "close" | "up" | "carry" | "release" | "rest";
 
 export interface Sim {
   bodies: Body[];
   /** Which design each body wears. */
   skin: Map<number, BallId>;
   keys: { left: boolean; right: boolean };
-  /** Where the claw has been asked to go: a tap on the glass, or the way to the nearest ball. */
+  /** Where a tap on the glass asked the claw to go. */
   seek: number | null;
-  /** Drop as soon as the claw gets there. */
-  dropOnArrival: boolean;
   /** Steps until the bin may be topped up again. */
   refillIn: number;
   /** Steps until a ball on top of the pile gives a little hop. */
   hopIn: number;
-  claw: { x: number; y: number; open: boolean; phase: Phase; timer: number; targetY: number; target: Body | null; held: Body | null; ticked: number; tries: number };
+  claw: { x: number; y: number; open: boolean; phase: Phase; timer: number; targetY: number; target: Body | null; held: Body | null; ticked: number; restX: number };
 }
 
 /** Things worth a sound or a reaction. A "prize" carries the ball that came down the chute. */
@@ -39,8 +40,6 @@ const REACH = 11.5;
 /** The prongs close around a ball that is this much further out than the claw could aim for, or this far above or below. */
 const GRASP_X = REACH + 3;
 const GRASP_Y = 10;
-/** How many times the claw will go again by itself before it admits a miss. */
-const TRIES = 3;
 /** A bin with this few balls left is topped up with a dozen more. */
 const LOW = 4;
 export const clampX = (x: number) => Math.max(WORLD.minX, Math.min(WORLD.maxX, x));
@@ -56,16 +55,18 @@ export function createSim(): Sim {
   const skin = new Map<number, BallId>();
   const bodies = pour(skin);
   settle(bodies);
-  return {
+  const sim: Sim = {
     bodies,
     skin,
     keys: { left: false, right: false },
     seek: null,
-    dropOnArrival: false,
     refillIn: 0,
     hopIn: 150,
-    claw: { x: WORLD.homeX, y: WORLD.top, open: true, phase: "idle", timer: 0, targetY: 0, target: null, held: null, ticked: WORLD.homeX, tries: 0 },
+    claw: { x: WORLD.homeX, y: WORLD.top, open: true, phase: "idle", timer: 0, targetY: 0, target: null, held: null, ticked: WORLD.homeX, restX: WORLD.homeX },
   };
+  // It starts where it rests: over the pile, with a ball under it.
+  sim.claw.x = sim.claw.ticked = sim.claw.restX = restSpot(sim);
+  return sim;
 }
 
 /** What the claw would take if it dropped at `x` (where it is now, unless told otherwise), and how far down that is. */
@@ -83,16 +84,14 @@ export function sight(sim: Sim, x = sim.claw.x) {
   return { y: Math.max(y, WORLD.top + 2), target };
 }
 
-/**
- * The nearest place, left or right, where a drop would come up with a ball. Not simply the
- * nearest ball: one tucked against the divider or the wall cannot be taken from above it.
- */
-export function nearestCatch(sim: Sim) {
+/** Where the claw rests between rounds: the place nearest the middle of the bin where a drop would catch a ball. */
+export function restSpot(sim: Sim) {
+  const middle = (WORLD.dividerX + WORLD.right) / 2;
   const spots = sim.bodies
     .filter((b) => !b.held && !inChute(b))
     .map((b) => clampX(b.x))
-    .sort((a, b) => Math.abs(a - sim.claw.x) - Math.abs(b - sim.claw.x));
-  return spots.find((x) => sight(sim, x).target) ?? null;
+    .sort((a, b) => Math.abs(a - middle) - Math.abs(b - middle));
+  return spots.find((x) => sight(sim, x).target) ?? clampX(middle);
 }
 
 /** Send the claw down for whatever is under it right now. */
@@ -104,7 +103,6 @@ function drop(sim: Sim, emit: Emit) {
   c.phase = "down";
   c.open = true;
   sim.seek = null;
-  sim.dropOnArrival = false;
   emit("descend");
 }
 
@@ -123,15 +121,9 @@ function inGrasp(sim: Sim) {
   return best;
 }
 
-/** The big button. With a ball under the claw it drops at once; otherwise it goes and finds one first. */
+/** The big button: the claw drops straight down, wherever it is. */
 export function grab(sim: Sim, emit: Emit) {
-  if (sim.claw.phase !== "idle") return;
-  sim.claw.tries = 0;
-  const spot = sight(sim).target ? null : nearestCatch(sim);
-  if (spot !== null) {
-    sim.seek = spot;
-    sim.dropOnArrival = true;
-  } else drop(sim, emit);
+  if (sim.claw.phase === "idle") drop(sim, emit);
 }
 
 /** One tap of an arrow: a fixed step, so the claw can be steered without holding. True if it moved. */
@@ -140,7 +132,6 @@ export function nudge(sim: Sim, side: "left" | "right", emit: Emit) {
   if (c.phase !== "idle") return false;
   c.x = clampX(c.x + (side === "left" ? -3 : 3));
   sim.seek = null;
-  sim.dropOnArrival = false;
   emit("move");
   return true;
 }
@@ -149,7 +140,6 @@ export function nudge(sim: Sim, side: "left" | "right", emit: Emit) {
 export function seekTo(sim: Sim, x: number) {
   if (sim.claw.phase !== "idle") return;
   sim.seek = clampX(x);
-  sim.dropOnArrival = false;
 }
 
 /**
@@ -162,11 +152,8 @@ export function advance(sim: Sim, locked: boolean, emit: Emit) {
 
   if (c.phase === "idle" && !locked) {
     const dir = (sim.keys.right ? 1 : 0) - (sim.keys.left ? 1 : 0);
-    // Steering by hand takes over from wherever the claw was heading.
-    if (dir) {
-      sim.seek = null;
-      sim.dropOnArrival = false;
-    }
+    // Steering by hand takes over from wherever a tap had sent the claw.
+    if (dir) sim.seek = null;
     let next = clampX(c.x + dir * SPEED);
     if (!dir && sim.seek !== null) {
       next = Math.abs(sim.seek - c.x) <= SPEED ? sim.seek : c.x + Math.sign(sim.seek - c.x) * SPEED;
@@ -180,7 +167,6 @@ export function advance(sim: Sim, locked: boolean, emit: Emit) {
         emit("move");
       }
     }
-    if (sim.dropOnArrival && sim.seek === null) drop(sim, emit);
 
     // Now and then a ball on top of the pile hops, so the pile feels alive.
     if (--sim.hopIn <= 0) {
@@ -223,40 +209,38 @@ export function advance(sim: Sim, locked: boolean, emit: Emit) {
         t.held = true;
         c.held = t;
         emit("grab");
-      } else c.tries++;
+      } else emit("miss");
     }
     if (c.timer <= 0) c.phase = "up";
     dirty = true;
   } else if (c.phase === "up") {
     c.y = Math.max(WORLD.top, c.y - 1.9);
     if (c.y <= WORLD.top) {
-      const again = !c.held && c.tries < TRIES ? nearestCatch(sim) : null;
+      // With a ball, off to the chute. Without one, it opens again and waits where it is for
+      // the player to line it up.
       if (c.held) c.phase = "carry";
-      else if (again === null) {
-        // Out of tries, or nothing left in the bin to take: this one really is a miss.
-        emit("miss");
-        c.phase = "return";
-      } else {
-        // It came up empty and has tries left: straight over to the nearest ball and down again.
+      else {
         c.phase = "idle";
         c.open = true;
-        sim.seek = again;
-        sim.dropOnArrival = true;
       }
     }
     dirty = true;
-  } else if (c.phase === "carry" || c.phase === "return") {
+  } else if (c.phase === "carry") {
     if (Math.abs(c.x - WORLD.homeX) <= SPEED) {
       c.x = WORLD.homeX;
-      if (c.phase === "carry") {
-        c.phase = "release";
-        c.timer = 12;
-      } else {
-        c.phase = "idle";
-        c.open = true;
-      }
+      c.phase = "release";
+      c.timer = 12;
     } else {
       c.x += c.x > WORLD.homeX ? -SPEED : SPEED;
+    }
+    dirty = true;
+  } else if (c.phase === "rest") {
+    // Back from the chute to its place over the pile.
+    if (Math.abs(c.x - c.restX) <= SPEED) {
+      c.x = c.restX;
+      c.phase = "idle";
+    } else {
+      c.x += c.x > c.restX ? -SPEED : SPEED;
     }
     dirty = true;
   } else if (c.phase === "release") {
@@ -270,7 +254,10 @@ export function advance(sim: Sim, locked: boolean, emit: Emit) {
       c.open = true;
       emit("release");
     }
-    if (c.timer <= 0) c.phase = "idle";
+    if (c.timer <= 0) {
+      c.restX = restSpot(sim);
+      c.phase = "rest";
+    }
     dirty = true;
   }
 
