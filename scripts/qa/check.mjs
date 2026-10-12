@@ -1,5 +1,6 @@
 // The end-to-end check. It drives a real (headless) Chrome against the running dev server:
 //
+//   0. the quotes backend is asked for every category, and the game is played with it cut off;
 //   1. every screen, at every window size the layout has an arrangement for, is measured
 //      (including phone screens as small as they get once the browser's toolbars are showing);
 //   2. a round is played in real time with real key presses and clicks, twice (desktop, phone);
@@ -7,7 +8,7 @@
 //
 // Run it with `pnpm e2e` while `pnpm dev` is up. It plays in its own save slot and removes it
 // afterwards, so it never touches a real save. It exits non-zero if anything fails.
-// `pnpm e2e screens`, `pnpm e2e play` or `pnpm e2e frames` runs one part alone.
+// `pnpm e2e api`, `pnpm e2e screens`, `pnpm e2e play` or `pnpm e2e frames` runs one part alone.
 
 import { launch, sleep } from "./chrome.mjs";
 import { hiddenControls, layoutInfo, offKit, slicedProps, smallestText } from "./measure.mjs";
@@ -35,9 +36,12 @@ const SIZES = [
   [375, 553],
   [844, 390],
 ];
+const CATEGORIES = ["motivation", "life", "creativity", "focus", "adventure", "wisdom", "friendship", "gaming"];
+const SHELF = "quote-quest:library:v1";
 const SCREENS = [
   ["playing", ""],
-  ["quote card", "demo=quote"],
+  // r11 is the longest quote in the library (117 characters) and the tenth of twenty in Friendship.
+  ["quote card", "cat=friendship&demo=quote&pick=0.47"],
   ["quote book", "book=saved"],
   ["ball album", "book=balls"],
   ["world select", "menu=worlds"],
@@ -45,16 +49,16 @@ const SCREENS = [
 ];
 /** A save with something in every corner of it: favourites, a log, most of the balls. */
 const SEEDED = {
-  favs: ["m1", "g5", "l6"],
+  favs: ["r11", "g4", "c17"],
   pulls: 77,
   world: "dream",
   cat: "gaming",
   dex: ["classic", "azure", "pearl", "volt", "dusk", "noir", "royal"],
-  // g4 is the longest quote in the game: if it fits, they all do.
+  // r11 is the longest quote in the library, c17 has the longest name: if they fit, they all do.
   log: [
     { q: "m1", b: "classic" },
-    { q: "g5", b: "royal" },
-    { q: "g4", b: "volt" },
+    { q: "c17", b: "royal" },
+    { q: "r11", b: "volt" },
   ],
   muted: true,
   music: false,
@@ -76,6 +80,70 @@ const url = (query = "") => `/?slot=${SLOT}${query ? `&${query}` : ""}`;
 
 const page = await launch();
 try {
+  // ── 0. The backend ────────────────────────────────────────────────────
+  await page.goto(url());
+  // Ask for every category, as the game does, and keep the answers the way the game keeps them.
+  const api = await page.run(
+    async (cats, key) => {
+      const shelf = { byId: {}, pools: {} };
+      const out = { index: await fetch("/api/quotes").then((r) => r.json()), cats: [], bad: await fetch("/api/quotes?category=poetry").then((r) => r.status) };
+      for (const cat of cats) {
+        const res = await fetch(`/api/quotes?category=${cat}`);
+        const body = await res.json();
+        for (const q of body.quotes) shelf.byId[q.id] = q;
+        shelf.pools[cat] = body.quotes.map((q) => q.id);
+        out.cats.push({ cat, status: res.status, cache: res.headers.get("cache-control"), count: body.quotes.length, complete: body.quotes.every((q) => q.id && q.cat === cat && q.text && q.author && q.source), longest: Math.max(...body.quotes.map((q) => q.text.length)) });
+      }
+      localStorage.setItem(key, JSON.stringify(shelf));
+      return out;
+    },
+    CATEGORIES,
+    SHELF,
+  );
+  if (part("api")) {
+    console.log("Backend: /api/quotes");
+    expect(api.index.total === 160 && api.index.categories.length === 8, `the index lists 8 categories and ${api.index.total} quotes`);
+    for (const c of api.cats) {
+      expect(c.status === 200 && c.count === 20 && c.complete, `${c.cat}: ${c.count} complete quotes (status ${c.status})`);
+      expect(/s-maxage/.test(c.cache ?? ""), `${c.cat}: the answer may be cached (${c.cache})`);
+      expect(c.longest <= 120, `${c.cat}: the longest quote is ${c.longest} characters`);
+    }
+    expect(api.bad === 400, `an unknown category is turned away (status ${api.bad})`);
+    console.log(`  ${api.index.total} quotes in ${api.index.categories.length} categories`);
+
+    // The game asks for its category by itself, and keeps what it is sent.
+    await page.run((key) => localStorage.removeItem(key), SHELF);
+    await page.size(1362, 1044);
+    await page.goto(url("cat=wisdom"), { settle: 800 });
+    const stocked = await page
+      .until((key) => JSON.parse(localStorage.getItem(key) ?? "{}").pools?.wisdom?.length === 20, { timeout: 10000, what: "the machine to be stocked" }, SHELF)
+      .then(() => true, () => false);
+    expect(stocked, "on arrival the game fetches its category and keeps all 20 quotes");
+
+    // With the backend out of reach and nothing kept from before, the built-in quotes cover.
+    await page.send("Network.setBlockedURLs", { urls: ["*/api/quotes*"] });
+    await page.run((key) => localStorage.removeItem(key), SHELF);
+    await page.goto(url(), { settle: 1200 });
+    await page.unseed(SLOT);
+    await page.goto(url(), { settle: 1200 });
+    await page.key(" ");
+    const offline = await page.until(() => document.querySelector(".qq").dataset.stage === "quote", { timeout: 30000, what: "a quote with the backend cut off" }).then(() => true, () => false);
+    expect(offline, "with the backend cut off, a grab still wins a quote");
+    expect((await page.run((key) => localStorage.getItem(key), SHELF)) === null, "and nothing was stocked, so that quote was a built-in one");
+    await page.send("Network.setBlockedURLs", { urls: [] });
+    await page.unseed(SLOT);
+    await page.goto(url());
+    await page.run((key, shelf) => localStorage.setItem(key, shelf), SHELF, JSON.stringify(await page.run(async (cats) => {
+      const shelf = { byId: {}, pools: {} };
+      for (const cat of cats) {
+        const body = await fetch(`/api/quotes?category=${cat}`).then((r) => r.json());
+        for (const q of body.quotes) shelf.byId[q.id] = q;
+        shelf.pools[cat] = body.quotes.map((q) => q.id);
+      }
+      return shelf;
+    }, CATEGORIES)));
+  }
+
   // ── 1. Every screen at every size ─────────────────────────────────────
   if (part("screens")) console.log(`Screens: ${SIZES.length} window sizes x ${SCREENS.length} screens`);
   await page.goto(url());
@@ -120,6 +188,7 @@ try {
     await page.size(w, h, { touch: w < 500 });
     await page.goto(url());
     await page.unseed(SLOT);
+    await page.run((key) => localStorage.removeItem(key), SHELF);
     await page.goto(url(), { settle: 1200 });
     // Nothing is really downloaded or copied: both are recorded instead.
     await page.run(() => {
@@ -130,6 +199,10 @@ try {
     });
     const stage = () => document.querySelector(".qq").dataset.stage ?? "aim";
     const save = (slot) => JSON.parse(localStorage.getItem(`quote-quest:v3:${slot}`) ?? "null");
+
+    // The machine stocks itself from the backend before anyone can reach the button.
+    const full = await page.until((key) => JSON.parse(localStorage.getItem(key) ?? "{}").pools?.motivation?.length === 20, { timeout: 10000, what: "the machine to be stocked" }, SHELF).then(() => true, () => false);
+    expect(full, `${name}: the machine holds all 20 Motivation quotes from the backend`);
 
     // The cub is never still: over six seconds it must strike more than one pose.
     const poses = new Set();

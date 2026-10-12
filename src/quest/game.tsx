@@ -19,7 +19,7 @@ import { Mascot, POKES, useCat } from "./mascot";
 import { checkSongs, playSong, songBeat, songName, stopSong } from "./music";
 import { AudioButton, BallDex, BookButton, type BookTab, CategoryPicker, PickerDialog, QuoteBook, TypeButton, WorldButton, WorldSelector } from "./panels";
 import "./quest.css";
-import { CATEGORIES, type Category, categoryLabel, pickQuote, quoteById } from "./quotes";
+import { CATEGORIES, type Category, categoryLabel, fetchQuotes, pickQuote, quoteById } from "./quotes";
 import { NEW_SAVE, type Save, readSave, writeSave } from "./save";
 import { WorldScene } from "./scenery";
 import { WIPE_HOLD, WIPE_IN, WIPE_OUT, type WipeStage, WorldIntro, WorldWipe } from "./transition";
@@ -159,6 +159,16 @@ export function QuestGame() {
 
   useEffect(() => setMuted(save.muted), [save.muted]);
 
+  // Stock the machine from the backend: the current category on arrival, and each one the
+  // player switches to. Nothing waits on it. Until the answer comes (or if it never does) the
+  // machine hands out what it already holds: last visit's quotes, or the built-in set.
+  useEffect(() => {
+    if (!ready) return;
+    const gone = new AbortController();
+    void fetchQuotes(save.cat, gone.signal);
+    return () => gone.abort();
+  }, [ready, save.cat]);
+
   // Each world has its own tune. It starts after the first tap and then never stops on its own:
   // not when the tab is in the background, not between worlds, only when it is switched off.
   const musicOn = ready && unlocked && !save.muted && save.music;
@@ -177,9 +187,10 @@ export function QuestGame() {
   const onWin = useCallback(
     (ball: BallId) => {
       const s = saveRef.current;
+      // Nothing the player has seen in their last dozen grabs comes round again.
       const next = pickQuote(
         s.cat,
-        s.log.slice(-5).map((e) => e.q),
+        s.log.slice(-12).map((e) => e.q),
       );
       if (!next) {
         setNote("The quote box is empty! Nothing to hand out.");

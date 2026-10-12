@@ -23,7 +23,7 @@ pnpm test
 pnpm e2e
 ```
 
-`pnpm test` runs 45 unit tests in about three seconds. `pnpm e2e` needs `pnpm dev` running: it drives a headless Chrome through every screen at 17 window sizes, plays two whole rounds with real key presses, clicks and touches, and samples the frame rate (767 checks, about four minutes).
+`pnpm test` runs 62 unit tests in about three seconds. `pnpm e2e` needs `pnpm dev` running: it drives a headless Chrome through every screen at 17 window sizes, asks the quotes backend for every category, plays with the backend cut off, plays two whole rounds with real key presses, clicks and touches, and samples the frame rate (798 checks, about four minutes).
 
 To publish a new version (the folder is linked to the Vercel project `quote-quest`; `docs/` is left out of the upload by `.vercelignore`):
 
@@ -35,6 +35,7 @@ pnpm dlx vercel deploy --prod
 | --- | --- |
 | `/` | Quote Quest, the playable machine |
 | `/assets` | Every sprite, every mascot face, and the five downloadable card pictures |
+| `/api/quotes` | The quotes backend (see below) |
 | `/casket` | Quote Casket, the earlier claw-and-television version |
 
 ## How it plays
@@ -160,7 +161,10 @@ Each world has its own looping chiptune, written as note lists in `src/quest/mus
 | `src/quest/panels.tsx` | World selector, quote types, ball collection, the Quote Book |
 | `src/quest/scenery.tsx`, `scenery-art.ts` | The five painted worlds, their scrolling layers and moving casts, and the sprites they are built from |
 | `src/quest/transition.tsx` | The five world-change wipes |
-| `src/quest/worlds.ts`, `balls.tsx`, `cards.ts`, `quotes.ts`, `music.ts` | Data: worlds, ball designs, card styles, 56 quotes, five tunes |
+| `src/quest/worlds.ts`, `balls.tsx`, `cards.ts`, `music.ts` | Data: worlds, ball designs, card styles, five tunes |
+| `src/quest/quotes.ts` | The built-in quotes, and the shelf in the browser that keeps what the backend sends |
+| `src/server/library.ts` | The quote library: 160 quotes, each with its source. Only the server reads it |
+| `src/app/api/quotes/route.ts` | The backend: one route that serves the library by category |
 | `src/quest/save.ts` | One localStorage entry: favourites, counts, world, type, balls found, the last 40 quotes |
 | `src/quest/quest.css` | Every style, one `[data-world]` block per cabinet skin |
 | `tests/` | Unit tests: layout, the claw, quotes, balls, worlds, tunes, the save |
@@ -168,7 +172,27 @@ Each world has its own looping chiptune, written as note lists in `src/quest/mus
 
 Every control is an 8bitcn component: buttons, badges, cards, the speech bubble, dialogs and the book's tabs, recoloured through CSS variables. The end-to-end check fails if it finds a plain `<button>` or a frame of the wrong thickness. 8bitcn draws its pixel frames 6px thick; here one variable (`--bit`, added to the kit's components) sets them to 4px, the size of every other pixel in the game. Labels, numbers and titles are in Press Start 2P, 8bitcn's retro font. It is drawn on an 8 by 8 grid, so it is only set at 8, 12, 16, 20 or 24px, and the whole layout is scaled in whole eighths (never above 1.25): at those sizes its pixels land on whole screen pixels, where 9, 10 or 11px left some strokes two pixels wide and others one. Sentences (what the cub says, the line under the name) are in Silkscreen at 16px, a narrower bitmap face, so a whole sentence fits on one line. Nothing is bold. A faint scanline and a slight fall-off at the corners sit over the whole screen. All art is drawn in code; there are no image files and no remote assets.
 
-The 56 quotes are real lines from real people (and seven from real games), seven per type. Adding one is a line in `quotes.ts`.
+## The quotes, and the backend that serves them
+
+The machine holds 160 quotes, 20 for each of the eight types, and gets them from its own backend. Nothing comes from a third-party quote service.
+
+What gets into the library: real lines, said or written by the person or work named, short enough for a card (120 characters), with a source that can be looked up, and no song lyrics. Every quote in `src/server/library.ts` carries its source: a book and year, a speech and date, a letter, a game. Where a line is a standard translation or the usual condensed form of a longer passage, the source says so. A line whose only evidence is someone else's say-so decades later stays out, which is why there is no Picasso.
+
+| Request | Answer |
+| --- | --- |
+| `GET /api/quotes` | The eight categories and how many quotes each holds |
+| `GET /api/quotes?category=gaming` | Every quote of that kind: `id`, `cat`, `text`, `author`, `source` |
+| `GET /api/quotes?category=poetry` | `400`, with the list of categories that do exist |
+
+```bash
+curl "https://quote-quest-lyart.vercel.app/api/quotes?category=gaming"
+```
+
+The route runs as a serverless function on Vercel. The library only changes on a deploy, so answers are cached at the edge for an hour.
+
+How the game uses it: on arrival, and whenever the quote type changes, it asks for that category and keeps the answer in the browser. Nothing waits on the request. Until the answer arrives, or with no connection at all, the machine hands out what it already has: the quotes kept from the last visit, or a small built-in set of 49. That is also why a saved favourite always opens, even offline. The library itself is not in the code the browser downloads; a check of the build confirms it.
+
+Seven quotes from the first version are retired: four that sat oddly in their category, and three whose attribution is popular rather than proven (Edmund Hillary, Alexander Graham Bell, and one Helen Keller line). They are no longer handed out, but they still open for anyone who saved them. Adding a quote is a row in `library.ts`; ids are never renumbered or reused, because favourites are stored by id.
 
 ## Audit and scorecard
 
@@ -190,11 +214,13 @@ Last audited on 11 October 2026. This round was about one question: would it hol
 | The 6px 8bitcn frames were heavier than the game's 4px pixels | Yes: 4px throughout. |
 | Spots on the Mushroom banner overlapped a lamp and sat under the cub's paw | Yes. |
 | A small heart in Dreamland's sky lost its notch at that size and read as a blob | Replaced with a wrapped sweet. |
-| No automated tests | Yes: 45 unit tests and a 767-check end-to-end run. |
+| No automated tests | Yes: 62 unit tests and a 798-check end-to-end run. |
 | The claw machine's inside is drawn on a 2px grid, the cub and cabinet ornaments on 3px, the cabinet and scenery on 4px | No. It would mean redrawing the machine and re-tuning its physics. |
 | Scenery painted in the middle of the sky (Dreamland's far islands, the low block rows) can still be cut by the window's edge when less than about 55% of the stage's height is showing, such as 1920 by 560 | No. |
 | The stylesheet is one 3,600-line file | No. |
-| Three quotes are popular attributions rather than firmly sourced (Edmund Hillary, Alexander Graham Bell, Helen Keller) | No. Noted here. |
+| Three quotes are popular attributions rather than firmly sourced (Edmund Hillary, Alexander Graham Bell, Helen Keller) | Yes. Retired, along with four that did not suit their category. Every quote handed out now has a source on record in the library. |
+| There were only 56 quotes, seven to a category, all shipped inside the page | Yes. 160 quotes, 20 to a category, served by a backend route and fetched per category; the page works without it. |
+| The sources in the library were first written from memory | Partly. I checked the 20 I was least sure of against the web: 16 held, and 4 were changed (a Picasso line with no source before a 1976 magazine item was dropped, a Bruce Lee line with disputed wording was dropped, a Lin Yutang line was swapped for the one confirmed in his book, and a Douglas Adams line was put back to the book's wording). The other 140 have not been checked one by one against the originals. Each source is specific enough to look up, and the three with no primary source are marked "widely attributed". |
 
 **What is checked on every run of `pnpm e2e`**
 

@@ -1,5 +1,5 @@
 import { type BallId, isBallId } from "./balls";
-import { CATEGORIES, type Category, quoteById } from "./quotes";
+import { type Category, isCategory, quoteById } from "./quotes";
 import { type WorldId, isWorldId } from "./worlds";
 
 // Everything worth keeping between visits, in one localStorage entry.
@@ -36,7 +36,6 @@ function key() {
   return slot ? `quote-quest:v3:${slot}` : "quote-quest:v3";
 }
 
-const isCategory = (x: unknown): x is Category => CATEGORIES.some((c) => c.id === x);
 const list = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
 
 /** Read the save, dropping anything that no longer matches the game (old ids, bad shapes). */
