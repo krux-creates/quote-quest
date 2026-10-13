@@ -4,7 +4,7 @@ A random quote generator you play. Pick a world, steer the claw, grab a ball, an
 
 **Play it: [quote-quest-lyart.vercel.app](https://quote-quest-lyart.vercel.app)**
 
-Day 2 of the 7-day build challenge. Next.js 16, React 19, Tailwind v4, 8bitcn components. The first take on day 2, Quote Casket, is still here at `/casket` and is described further down.
+Day 1 of the 7-day build challenge. Next.js 16, React 19, Tailwind v4, 8bitcn components.
 
 ![Dreamland](docs/world-dream.png)
 
@@ -36,7 +36,6 @@ git push
 | `/` | Quote Quest, the playable machine |
 | `/assets` | Every sprite, every mascot face, and the five downloadable card pictures |
 | `/api/quotes` | The quotes backend (see below) |
-| `/casket` | Quote Casket, the earlier claw-and-television version |
 
 ## How it plays
 
@@ -262,135 +261,3 @@ Lint, type-check and the production build also pass.
 - The open-book layout follows the usual pattern for pixel-art journals: both pages in view, a darker gutter at the spine, a page turn in a handful of frames. [OpenGameArt's open book](https://opengameart.org/content/open-book) and [animated pixel book](https://opengameart.org/content/pixel-book-animated) were the references; nothing was copied from them.
 - The balls are original two-tone capsules, but the family resemblance to Poké Balls is deliberate. That look belongs to Nintendo and The Pokémon Company: fine for a personal build, swap the sprites before using this anywhere commercial. "Mushroom Hills" is named to stay clear of the same owner's place names.
 - In development, `?world=`, `?cat=`, `?demo=open|quote`, `?ball=`, `?dex=all`, `?book=`, `?menu=`, `?wipe=hold`, `?ui=0` and `?slot=` set up a state for screenshots and tests. They do nothing in a production build.
-
----
-
-# Quote Casket (first version, at `/casket`)
-
-A random quote generator you have to win. Steer a claw over a pile of capsules, drop one in the prize box, and the quote inside airs on a retro TV.
-
-Day 2 of the 7-day build challenge. Next.js 16, Tailwind v4, and [8bitcn](https://www.8bitcn.com) components.
-
-![The Xuanfang casket at sunset](docs/casket-xuanfang.png)
-
-## Run it
-
-```bash
-pnpm install
-pnpm dev --port 3002
-```
-
-Controls: `←` `→` (or `A` `D`) move the claw, `Space` drops it. Every control also has an on-screen button.
-
-## How it plays
-
-1. **Press START** on the TV.
-2. **Heart of Repair.** The prize box is jammed with three pieces of scrap. Lift them out of the chute and the machine comes to life. This is the tutorial, and it only happens once.
-3. **Grab a capsule.** Blue is common, purple is rare, gold is legendary. The capsule drops into the prize box, the TV cuts to static, the capsule cracks open on a sunburst, and the quote types out with its author and source.
-4. **Collect.** Each tape (channel) holds nine quotes in three sets of three. Finishing a set pays out XP and a set-complete screen.
-
-Other things to find:
-
-- **Tape shelf.** Five tapes, five themes. Clicking one, or turning the CH dial on the TV, loads a different casket in a different place.
-- **Orbs.** Two teal orbs ride in every load. Drop one in the prize box for a life back in Arcade mode, or bonus XP in Chill.
-- **VCR deck.** REW and FF step through everything that has aired. KEEP favourites a quote, COPY puts it on the clipboard, CARD saves a 1080×1080 postcard PNG.
-- **Quote book.** Every quote collected, with a stat card per quote and a quest log.
-- **Arcade mode** (MENU). Aim matters, a slip costs one of nine lives, and running out ends the game.
-- **Service hatch.** The panel with two screws on the cabinet opens the inside of the machine: a grip-strength dial, and a capsule you are told not to take.
-
-## Five caskets
-
-Every tape plays in its own casket, with its own backdrop.
-
-| Channel | Casket | Backdrop |
-| --- | --- | --- |
-| 01 Player One | Arcade — the cream cabinet from the Figma file | Clear afternoon, snow-capped mountains, a small town |
-| 02 Lucky Drop | Xuanfang — red lacquer, jade glass, brass claw, tiled roof | Sunset over pagoda rooftops with lit lanterns |
-| 03 Continue? | Mint — green cabinet, pink rail | First light over green hills |
-| 04 Workshop | Workshop — plywood, steel rail, orange claw | Golden hour |
-| 05 Signal | Night Shift — dark cabinet, neon rail | Stars, a crescent moon, transmitter towers |
-
-| | |
-| --- | --- |
-| ![Arcade](docs/playing.png) | ![Night Shift](docs/casket-night-shift.png) |
-| ![Workshop](docs/casket-workshop.png) | ![Mint](docs/casket-mint.png) |
-
-The Xuanfang casket is modelled on the Auto Casket in Wuthering Waves 3.5: a jade-glass box framed by red lacquered pillars, with a brass claw and a warm wooden interior. The orbs come from the same place, where grabbing one extends the timer.
-
-## The backdrop
-
-The scenery is generated in code, not drawn or downloaded. `src/components/backdrop.tsx` paints a canvas at a quarter of the screen's resolution and scales it up by exactly 4, so every pixel is square and lines up with the UI's own 4px grid. Each scene is a palette plus a seed:
-
-- a sky that steps through four to six colours with ordered (Bayer) dithering between them
-- a sun or moon with a dithered halo, and stars at night
-- pale far mountains with lit caps and haze at the foot
-- darker mid hills
-- a town skyline built building by building from a weighted mix of houses, pagodas and towers, with lit windows
-- trees, grass and speckled soil
-
-Far layers are kept low-contrast so the cabinet stays the loudest thing on screen. Clouds creep one pixel at a time; nothing else moves, and nothing moves at all under reduced motion.
-
-## The quotes
-
-45 real quotes from real people, chosen to fit the machine rather than pulled from a general list: games and play, luck and taking the shot, missing and going again, making and mending, machines and broadcast. Each one carries its source and year so it can be checked. Where the wording is widely repeated but the original source is uncertain, the card says `attrib.` instead of naming one.
-
-## Where the look comes from
-
-| In the app | From |
-| --- | --- |
-| Cream cabinet, grey bevelled glass, blue rail and claw, tapered white deck, blue PICK bar | Figma, Mini Games — claw machine frame |
-| Teal TV with antenna, two dials and a speaker grille | Figma, Mini Games — Retro Television |
-| Tape shelf under the screen | Figma, Mini Games — game page with VHS shelf |
-| Sunburst behind the opening capsule | Figma, Daily Treats — mystery box |
-| Nine hearts, black-header HUD cells, GAME OVER card, "press START" | Figma, Daily Treats — streak cards and 8-bit screens |
-| Quote-count pill with the mascot | Figma, quest pages — treat count |
-| Podium cards on set complete, white card over a black panel with a mint button | Figma, Quest with rewards — reward cards |
-| Stat card for each quote | The Wuthering Waves character screen saved in the Figma |
-| Xuanfang casket, orbs, jammed prize box | Wuthering Waves 3.5 — Auto Casket and the Heart of Repair quest |
-| Layered, dithered backdrop at one fixed pixel scale | Common pixel-art parallax practice: few layers, pale far layers, whole-number scaling |
-
-King Clawdius, the mascot, is an original sprite. The Figma's own mascot was not copied.
-
-## 8bitcn components used
-
-Button, Badge, Alert, Dialog, Sheet, Tabs, Scroll Area, Item, Slider, Switch, Label, Kbd, Tooltip, Toast, XP Bar, Enemy Health Display (the jam's boss bar), Accordion and Card, plus two blocks: Quest Log and Difficulty Select. Both blocks were given small extra props (`title`, `options`, `labels`).
-
-## Scorecard
-
-Five criteria, 0–2 each. Scored from screenshots of the running app and from scripted play-throughs, not from the source.
-
-| Criterion | First render | Round 1 | Round 2 | Final |
-| --- | --- | --- | --- | --- |
-| Matches the references | 1 | 1.5 | 2 | 2 |
-| Stays on the pixel grid | 1 | 1.5 | 2 | 2 |
-| Core loop works | 1 | 2 | 2 | 2 |
-| Game systems work | 1 | 1.5 | 1.5 | 2 |
-| Polish and responsiveness | 1 | 1.5 | 1.5 | 2 |
-| **Total** | **5** | **8** | **9** | **10** |
-
-What changed between rounds:
-
-- **Round 1.** Fuller capsule pile. Tape shelf no longer overlaps its label. Marquee letters spaced. A tap now moves the claw a fixed step. The claw can reach scrap next to the chute post. Fixed scrap reappearing after a reload on a repaired machine. Fixed REW being dead after a tape change.
-- **Round 2.** TV dials redrawn as pixel shapes. Tapered deck with a yellow base. Overlays dim with a dither instead of a blur. Glows banded instead of blended. Book entries and toasts squared off. Quote text sized to the screen so the longest quote fits a 375px phone. Simulation refactored so lint passes clean.
-- **Final.** Generated backdrop per channel. Five caskets, including the Xuanfang one. Orbs. The claw now stops only on things it can close around, so a neighbour never blocks a capsule that is lined up, and a capsule can no longer be left flagged as held. A guard above the chute post means only something the claw drops can enter the prize box; before this, a full pile could spill a capsule over the post and award a quote nobody grabbed. Copy falls back to the older selection-based method when the Clipboard API is refused.
-
-How the last two points were closed:
-
-- **Copy.** Clicked COPY with the clipboard API stubbed: it received the exact quote and author and the app reported success. Clicked again with the API refusing: the fallback copied the same text. Stubbed so the test did not overwrite a real clipboard.
-- **Postcard.** Clicked CARD with the download stubbed: a `quote-casket-p6.png` blob link was triggered and the app reported it saved. The image itself was rendered and inspected separately.
-- **Sound.** Measured at the audio output after a real click: the reveal jingle peaked at 0.119 with the audio context running. This shows sound is produced; nobody listened to how it sounds.
-- **Phone scroll.** At 375px, scrolled down to the machine, won a capsule, and the page scrolled the TV back to 16px from the top with the quote on it.
-- **Soak.** 20 grabs in a row, each aimed at the topmost thing in the pile: 20 delivered (17 capsules, 3 orbs), sets completing along the way, nothing left stuck.
-- **Idle.** 50 seconds of simulated idle time with a full pile: nothing entered the chute on its own. On a jammed machine, a capsule dropped on the scrap is thrown back onto the pile and the mascot says why.
-
-## Checks
-
-- `pnpm exec tsc --noEmit` — clean
-- `pnpm exec eslint src` — clean
-- `pnpm build` — passes
-- No horizontal overflow at 375px or 1440px
-- Browser console clean on a fresh tab
-
-## Notes for development
-
-`?demo=quote`, `reveal`, `over`, `book`, `victory`, `menu`, `hatch`, `ident` or `jam` opens the page in that state with a seeded save, and `&tape=play|luck|grit|make|signal` picks the casket. `window.__casket.tick(n)` steps the claw simulation by hand, which is needed when the tab is in the background and gets no animation frames. Both exist only in development builds.
